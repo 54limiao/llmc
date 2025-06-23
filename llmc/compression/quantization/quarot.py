@@ -35,7 +35,7 @@ class Quarot(BaseBlockwiseQuantization):
         self.remove_mean_from_embed()
 
         self.Q = self.get_orthogonal_matrix()
-        self.Q2 = self.random_orthogonal_matrix(self.hidden_size // self.num_heads, self.dev)
+        self.R2 = self.get_orthogonal_matrix(self.head_dim // self.num_heads)
         self.rotate_embeddings(self.Q)
 
         pre_head_ln = self.model.get_pre_head_layernorm_layers()[0]
@@ -88,11 +88,13 @@ class Quarot(BaseBlockwiseQuantization):
         q *= torch.sign(torch.diag(r)).unsqueeze(0)
         return q
 
-    def get_orthogonal_matrix(self):
+    def get_orthogonal_matrix(self, size=None):
+        if size==None:
+            size = self.hidden_size
         if self.rotate_mode == 'random':
-            return self.random_orthogonal_matrix(self.hidden_size, self.dev)
+            return self.random_orthogonal_matrix(size, self.dev)
         elif self.rotate_mode == 'hadamard':
-            return random_hadamard_matrix(self.hidden_size, self.dev)
+            return random_hadamard_matrix(size, self.dev)
         else:
             raise ValueError(f'Unsupported mode {self.mode}')
 
@@ -137,14 +139,12 @@ class Quarot(BaseBlockwiseQuantization):
                 )
             else:
                 self.rotate_post_layers(layers, self.Q, exact_had=False)
-                self.rotate_pre_layers(layers, self.Q2)
-                self.rotate_post_layers(prev_op, self.Q2)
                 if self.online_rotate:
                     if prev_op[0] is not None:
                         apply_exact_had_to_linear(
-                            prev_op[0], had_dim=self.head_dim, output=True
+                            prev_op[0], had_dim=self.head_dim, output=True, R2=self.R2
                         )
-                        apply_exact_had_to_linear(layers[0], had_dim=-1, output=False)
+                        apply_exact_had_to_linear(layers[0], had_dim=-1, output=False, R2=self.R2)
 
     @torch.no_grad()
     def save_model(self, path):
