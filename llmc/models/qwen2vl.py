@@ -8,10 +8,10 @@ from loguru import logger
 from transformers import AutoConfig, AutoProcessor, AutoTokenizer
 
 try:
-    from transformers import Qwen2VLForConditionalGeneration
+    from transformers import Qwen2_5_VLForConditionalGeneration
 except Exception:
     logger.warning(
-        'Can not import Qwen2VLForConditionalGeneration. '
+        'Can not import Qwen2_5_VLForConditionalGeneration. '
         'If you need it, please upgrade transformers.'
     )
 
@@ -42,7 +42,7 @@ class Qwen2VL(Qwen2):
             if hasattr(self.vlm_model_config, 'use_cache'):
                 self.vlm_model_config.use_cache = False
         logger.info(f'self.vlm_model_config : {self.vlm_model_config}')
-        self.vlm_model = Qwen2VLForConditionalGeneration.from_pretrained(
+        self.vlm_model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             self.model_path,
             config=self.vlm_model_config,
             trust_remote_code=True,
