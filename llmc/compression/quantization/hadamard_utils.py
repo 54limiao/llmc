@@ -110,7 +110,6 @@ def hadamard_matrix(size, device):
     Q = torch.eye(size)
     return matmul_hadU(Q).to(device)
 
-
 def matmul_hadU_cuda(X, hadK, K):
     n = X.shape[-1]
     if K == 1:
@@ -138,6 +137,8 @@ def apply_exact_had_to_linear(module, had_dim=-1, output=False, R2=None):
         assert is_pow2(had_dim), "Hadamard dimension must be a power of 2!"
 
     W_ = module.weight.data
+    if module.bias is not None:
+        bias_ = module.bias.data
     dtype = W_.dtype
     dev = W_.device
     init_shape = W_.shape
@@ -147,6 +148,8 @@ def apply_exact_had_to_linear(module, had_dim=-1, output=False, R2=None):
         if output:
             had_K, K = get_hadK(out_features)
             W_ = matmul_hadU_cuda(W_.t(), had_K, K).t()
+            if module.bias is not None:
+                bias_ = matmul_hadU_cuda(bias_.t(), had_K, K).t()
         if not output:
             had_K, K = get_hadK(in_features)
             W_ = matmul_hadU_cuda(W_, had_K, K)
@@ -160,12 +163,21 @@ def apply_exact_had_to_linear(module, had_dim=-1, output=False, R2=None):
             temp = W_.reshape(-1, transposed_shape[-1] // had_dim, had_dim)
             temp = temp.to(torch.float64) @ hadK
             W_ = temp.reshape(transposed_shape).t()
+            if module.bias is not None:
+                bias_ = module.bias.data
+                bias_ = bias_.t()
+                transposed_shape = bias_.shape
+                temp = bias_.reshape(-1, transposed_shape[-1] // had_dim, had_dim)
+                temp = temp.to(torch.float64) @hadK
+                bias_ = temp.reshape(transposed_shape).t()
         else:
             init_shape = W_.shape
             temp = W_.reshape(-1, init_shape[-1] // had_dim, had_dim)
             temp = temp.to(torch.float64) @ hadK
             W_ = temp.reshape(init_shape)
     module.weight.data = W_.to(device=dev, dtype=dtype)
+    if module.bias is not None:
+        module.bias.data = bias_.to(device=dev, dtype=dtype)
 
 # def apply_exact_had_to_linear(module, had_dim=-1, output=False):
 #     # assert isinstance(module, (torch.nn.Linear, RotateLinear))
