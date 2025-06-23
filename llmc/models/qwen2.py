@@ -13,12 +13,12 @@ class Qwen2(BaseModel):
         super().__init__(config, device_map, use_cache)
 
     def find_blocks(self):
-        self.blocks = self.model.model.layers
+        self.blocks = self.model.language_model.layers
 
     def find_embed_layers(self):
-        self.embed_tokens = self.model.model.embed_tokens
+        self.embed_tokens = self.model.language_model.embed_tokens
         if packaging.version.parse(version('transformers')) >= packaging.version.parse('4.45.0'):
-            self.rotary_emb = self.model.model.rotary_emb
+            self.rotary_emb = self.model.language_model.rotary_emb
 
     def find_block_name(self):
         self.block_name_prefix = 'model.layers'
