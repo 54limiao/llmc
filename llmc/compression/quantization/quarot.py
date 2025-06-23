@@ -35,7 +35,7 @@ class Quarot(BaseBlockwiseQuantization):
         self.remove_mean_from_embed()
 
         self.Q = self.get_orthogonal_matrix()
-        self.Q2 = self.random_orthogonal_matrix(self.hidden_size // self.num_heads, self.hidden_size, self.dev)
+        self.Q2 = self.random_orthogonal_matrix(self.hidden_size // self.num_heads, self.dev)
         self.rotate_embeddings(self.Q)
 
         pre_head_ln = self.model.get_pre_head_layernorm_layers()[0]
@@ -84,13 +84,6 @@ class Quarot(BaseBlockwiseQuantization):
     def random_orthogonal_matrix(self, size, device):
         torch.cuda.empty_cache()
         random_matrix = torch.randn(size, size, dtype=torch.float64).to(device)
-        q, r = torch.linalg.qr(random_matrix)
-        q *= torch.sign(torch.diag(r)).unsqueeze(0)
-        return q
-
-    def random_orthogonal_matrix(self, size0, size1, device):
-        torch.cuda.empty_cache()
-        random_matrix = torch.randn(size0, size1, dtype=torch.float64).to(device)
         q, r = torch.linalg.qr(random_matrix)
         q *= torch.sign(torch.diag(r)).unsqueeze(0)
         return q
@@ -144,8 +137,8 @@ class Quarot(BaseBlockwiseQuantization):
                 )
             else:
                 self.rotate_post_layers(layers, self.Q, exact_had=False)
-                self.rotate_pre_layers(layers[0], self.Q2)
-                self.rotate_post_layers(prev_op[0], self.Q2)
+                self.rotate_pre_layers(layers, self.Q2)
+                self.rotate_post_layers(prev_op, self.Q2)
                 if self.online_rotate:
                     if prev_op[0] is not None:
                         apply_exact_had_to_linear(
