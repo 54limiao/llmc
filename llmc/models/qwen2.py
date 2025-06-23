@@ -40,13 +40,13 @@ class Qwen2(BaseModel):
         return [self.model.lm_head]
 
     def get_pre_head_layernorm_layers(self):
-        return [self.model.model.norm]
+        return [self.model.language_model.norm]
 
     def get_layers_except_blocks(self):
         if packaging.version.parse(version('transformers')) >= packaging.version.parse('4.45.0'):
-            return [self.embed_tokens, self.rotary_emb, self.model.model.norm, self.model.lm_head] # noqa
+            return [self.embed_tokens, self.rotary_emb, self.model.language_model.norm, self.model.lm_head] # noqa
         else:
-            return [self.embed_tokens, self.model.model.norm, self.model.lm_head]
+            return [self.embed_tokens, self.model.language_model.norm, self.model.lm_head]
 
     def skip_layer_name(self):
         return ['lm_head']
