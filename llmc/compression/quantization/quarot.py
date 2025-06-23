@@ -35,7 +35,7 @@ class Quarot(BaseBlockwiseQuantization):
         self.remove_mean_from_embed()
 
         self.Q = self.get_orthogonal_matrix()
-        self.R2 = self.get_orthogonal_matrix(self.head_dim // self.num_heads)
+        self.R2 = self.get_orthogonal_matrix(self.head_dim)
         self.rotate_embeddings(self.Q)
 
         pre_head_ln = self.model.get_pre_head_layernorm_layers()[0]
@@ -139,12 +139,12 @@ class Quarot(BaseBlockwiseQuantization):
                 )
             else:
                 self.rotate_post_layers(layers, self.Q, exact_had=False)
-                if self.online_rotate:
+                if True:#self.online_rotate:
                     if prev_op[0] is not None:
                         apply_exact_had_to_linear(
                             prev_op[0], had_dim=self.head_dim, output=True, R2=self.R2
                         )
-                        apply_exact_had_to_linear(layers[0], had_dim=-1, output=False, R2=self.R2)
+                        apply_exact_had_to_linear(layers[0], had_dim=self.head_dim, output=False, R2=self.R2)
 
     @torch.no_grad()
     def save_model(self, path):
