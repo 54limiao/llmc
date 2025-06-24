@@ -5,6 +5,23 @@ import os
 import sys
 import time
 
+# llmc_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# if llmc_path not in sys.path:
+#     sys.path.insert(0, llmc_path)
+
+# current_pythonpath = os.environ.get('PYTHONPATH', '')
+# if current_pythonpath:
+#     os.environ['PYTHONPATH'] = f"{llmc_path}:{current_pythonpath}"
+# else:
+#     os.environ['PYTHONPATH'] = llmc_path
+
+# os.environ['RANK'] = '0'
+# os.environ['LOCAL_RANK'] = '0'
+# os.environ['WORLD_SIZE'] = '1'
+# os.environ['MASTER_ADDR'] = 'localhost'
+# os.environ['MASTER_PORT'] = '12355'
+# os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+
 import torch
 import torch.distributed as dist
 import yaml
