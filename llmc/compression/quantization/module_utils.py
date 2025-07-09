@@ -44,6 +44,14 @@ def block_wise_fp8_forward_func(x, w, w_scale, block_size, bias):
         y += bias
     return y
 
+def get_module_name(model, module):
+    """
+    Get the name of the module in the model.
+    """
+    for name, mod in model.named_modules():
+        if mod is module:
+            return name
+    return None
 
 class FakeAffineLayerNorm(nn.Module):
     def __init__(self, norm, shape):
