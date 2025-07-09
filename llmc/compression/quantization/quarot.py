@@ -11,7 +11,7 @@ from llmc.utils.registry_factory import ALGO_REGISTRY
 from .base_blockwise_quantization import BaseBlockwiseQuantization
 from .hadamard_utils import apply_exact_had_to_linear, random_hadamard_matrix
 from .module_utils import (_LLMC_LN_TYPES_, _TRANSFORMERS_LN_TYPES_,
-                           LlmcRMSNorm, RotateLinear)
+                           LlmcRMSNorm, RotateLinear, get_module_name)
 
 
 @ALGO_REGISTRY
@@ -32,7 +32,8 @@ class Quarot(BaseBlockwiseQuantization):
             w = self.model.get_embed_layers()[0].weight.clone()
             self.model.get_head_layers()[0].weight = nn.Parameter(w)
 
-        self.remove_mean_from_embed()
+        if self.config['model']['type'] not in ['Qwen25VL']:
+            self.remove_mean_from_embed()
 
         self.Q = self.get_orthogonal_matrix()
         self.R2 = random_hadamard_matrix(self.hidden_size // self.num_heads, self.dev)
@@ -41,10 +42,11 @@ class Quarot(BaseBlockwiseQuantization):
         pre_head_ln = self.model.get_pre_head_layernorm_layers()[0]
         self.fuse_ln_fcs(pre_head_ln, self.model.get_head_layers())
 
+        pre_head_ln_name = get_module_name(self.model.model, pre_head_ln)
         self.model.replace_module_subset(
             LlmcRMSNorm,
             self.model.model,
-            {'layers': {'model.norm': pre_head_ln}},
+            {'layers': {pre_head_ln_name: pre_head_ln}},
             None,
             {},
         )
@@ -73,6 +75,9 @@ class Quarot(BaseBlockwiseQuantization):
             device = self.Q.device
             W = rot_layer.weight.data.to(device=device, dtype=torch.float64)
             rot_layer.weight.data = torch.matmul(self.Q.T, W).to(device='cpu', dtype=dtype) # noqa
+            if hasattr(rot_layer, 'bias') and rot_layer.bias is not None:
+                b = rot_layer.bias.data.to(device=device, dtype=torch.float64)
+                rot_layer.bias.data = torch.matmul(self.Q.T, b).to(device='cpu', dtype=dtype)
 
         gc.collect()
         torch.cuda.empty_cache()
