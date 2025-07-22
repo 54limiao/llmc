@@ -5,7 +5,7 @@ from loguru import logger
 
 from llmc.eval import (AccuracyEval, CustomGenerate, DecodePerplexityEval,
                        HumanEval, PerplexityEval, TokenConsistencyEval,
-                       VideoGenerateEval, VQAEval)
+                       VideoGenerateEval, VQAEval, MSEEval)
 from llmc.utils import deploy_all_modality
 
 
@@ -65,6 +65,8 @@ def get_eval_list(model, config):
                             eval_class = DecodePerplexityEval(model, config_for_eval)
                         elif config_tmp.eval.type == 'video_gen':
                             eval_class = VideoGenerateEval(model, config_for_eval)
+                        elif config_tmp.eval.type == 'mse':
+                            eval_class = MSEEval(model, config_for_eval)
                         else:
                             raise ValueError(
                                 f'Unsupported eval type: {config_tmp.eval.type}'
@@ -89,4 +91,7 @@ def eval_model(model, blockwise_opts, eval_list, eval_pos):
                     res = eval_class.eval(model, eval_pos)
                     eval_name = config_for_eval.eval.type
                     dataset_name = config_for_eval.eval.name
-                    logger.info(f'EVAL: {eval_name} on {dataset_name} is {res}')
+                    eval_res_log = f'[{eval_pos}] EVAL: {eval_name} on {dataset_name} is {res}'
+                    logger.info(eval_res_log)
+                    return eval_res_log
+    return None

@@ -20,7 +20,9 @@ import time
 # os.environ['WORLD_SIZE'] = '1'
 # os.environ['MASTER_ADDR'] = 'localhost'
 # os.environ['MASTER_PORT'] = '12355'
-# os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+# os.environ['HF_ENDPOINT'] = 'https://alpha.hf-mirror.com'
+
+config_path = "/workspace/lim42@xiaopeng.com/llmc/configs/quantization/combination/quarot_comb_gptq/w8a8/test_step_1_quarot.yml"
 
 import torch
 import torch.distributed as dist
@@ -48,7 +50,9 @@ def main(config):
     logger.info(f'tokenizer: {model.get_tokenizer()}')
 
     eval_list = get_eval_list(model, config)
-    eval_model(model, None, eval_list, eval_pos='pretrain')
+    eval_res_list = []
+    eval_res = eval_model(model, None, eval_list, eval_pos='pretrain')
+    eval_res_list.append(eval_res)
 
     blockwise_opts = []
     modalities, modality_configs = get_modality(config)
@@ -86,7 +90,8 @@ def main(config):
             blockwise_opts.append(blockwise_opt)
             dist.barrier()
 
-    eval_model(model, blockwise_opts, eval_list, eval_pos='transformed')
+    eval_res = eval_model(model, blockwise_opts, eval_list, eval_pos='transformed')
+    eval_res_list.append(eval_res)
     if int(os.environ['RANK']) == 0:
         if 'save' in config and config.save.get('save_trans', False):
             blockwise_opt.save_model(save_trans_path)
@@ -101,8 +106,10 @@ def main(config):
                 config.save.get('trtllm_cfg'),
             )
 
-        eval_model(model, blockwise_opts, eval_list, eval_pos='fake_quant')
-        eval_model(model, blockwise_opts, eval_list, eval_pos='fake_quant_wo_kv')
+        eval_res = eval_model(model, blockwise_opts, eval_list, eval_pos='fake_quant')
+        eval_res_list.append(eval_res)
+        eval_res = eval_model(model, blockwise_opts, eval_list, eval_pos='fake_quant_wo_kv')
+        eval_res_list.append(eval_res)
 
         if 'save' in config and config.save.get('save_fake', False):
             deploy_all_modality(blockwise_opts, 'fake_quant')
@@ -191,13 +198,17 @@ def main(config):
             os.system(opencompass_cmd)
     dist.barrier()
 
+    for eval_res in eval_res_list:
+        if eval_res:
+            logger.info(eval_res)
+
 
 if __name__ == '__main__':
     logger.add(sys.stdout, level='INFO')
     llmc_start_time = time.time()
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', type=str, required=True)
-    parser.add_argument('--task_id', type=str, required=True)
+    parser.add_argument('--config', type=str, default=config_path)
+    parser.add_argument('--task_id', type=str, default=34543)
     args = parser.parse_args()
 
     with open(args.config, 'r') as file:
