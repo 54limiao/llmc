@@ -205,6 +205,14 @@ def main(config):
 
 if __name__ == '__main__':
     logger.add(sys.stdout, level='INFO')
+    # logger.add(
+    #     "/workspace/lim42@xiaopeng.com/.vscode/llmc.log",
+    #     level='INFO',
+    #     rotation="100 MB",  # 当文件达到100MB时轮转
+    #     retention="7 days",  # 保留7天的日志文件
+    #     format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
+    #     encoding="utf-8"
+    # )
     llmc_start_time = time.time()
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', type=str, default=config_path)
