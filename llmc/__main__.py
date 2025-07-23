@@ -200,9 +200,7 @@ def main(config):
 
     for eval_res in eval_res_list:
         if eval_res:
-            logger.info("=" * 20)
             logger.info(eval_res)
-            logger.info("=" * 20)
 
 
 if __name__ == '__main__':
